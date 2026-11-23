@@ -108,7 +108,7 @@ public class ClutchController {
                     waterAt = place;
                     bucketSlot = slot;
                     pickupTicks = 0;
-                    p.getInventory().setSelectedSlot(original);
+                    InvHelper.select(p, original);
                     doneThisFall = true;
                     say(p, "§bAuto Clutch: " + ch.name);
                     return;   // borrowed qaytarish suvni olgandan keyin
@@ -116,13 +116,13 @@ public class ClutchController {
             } else {
                 float yaw = p.getYaw(), pitch = p.getPitch();
                 Rotations.sendLook(p, yaw, 90.0f);
-                p.getInventory().setSelectedSlot(slot);
+                InvHelper.select(p, slot);
                 c.interactionManager.interactBlock(p, Hand.MAIN_HAND,
                         new BlockHitResult(top, Direction.UP, ground, false));
                 p.swingHand(Hand.MAIN_HAND);
                 Rotations.sendLook(p, yaw, pitch);
             }
-            p.getInventory().setSelectedSlot(original);
+            InvHelper.select(p, original);
             restoreBorrowed(c, p);
             doneThisFall = true;
             say(p, "§bAuto Clutch: " + ch.name);
@@ -138,7 +138,7 @@ public class ClutchController {
         if (landed && src != null && pickupTicks >= 2 && p.getInventory().getStack(bucketSlot).isOf(Items.BUCKET)) {
             int original = p.getInventory().getSelectedSlot();
             use(c, p, bucketSlot, Vec3d.ofCenter(src));
-            p.getInventory().setSelectedSlot(original);
+            InvHelper.select(p, original);
             waterAt = null;
         } else if (pickupTicks > 30) {
             waterAt = null;
@@ -150,7 +150,7 @@ public class ClutchController {
     private static void use(MinecraftClient c, ClientPlayerEntity p, int slot, Vec3d at) {
         float yaw = p.getYaw(), pitch = p.getPitch();
         Vec3d eye = p.getEyePos();
-        p.getInventory().setSelectedSlot(slot);
+        InvHelper.select(p, slot);
         p.setYaw(Rotations.yawTo(eye, at));
         p.setPitch(Rotations.pitchTo(eye, at));
         c.interactionManager.interactItem(p, Hand.MAIN_HAND);
