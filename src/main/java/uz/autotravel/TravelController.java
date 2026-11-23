@@ -283,7 +283,7 @@ public class TravelController {
                 tool = i;
             }
         }
-        if (tool >= 0) p.getInventory().setSelectedSlot(tool);
+        if (tool >= 0) InvHelper.select(p, tool);
         Vec3d eye = p.getEyePos(), center = Vec3d.ofCenter(b);
         if (Rotations.turn(p, Rotations.yawTo(eye, center), Rotations.pitchTo(eye, center), 6.0f)) {
             c.options.attackKey.setPressed(true);
@@ -304,7 +304,7 @@ public class TravelController {
             for (int i = 0; i < 9; i++) if (p.getInventory().getStack(i).isEmpty()) { hb = i; break; }
             InvHelper.swap(c, p, slot, hb);
         }
-        p.getInventory().setSelectedSlot(hb);
+        InvHelper.select(p, hb);
         Vec3d hit = Vec3d.ofCenter(against).add(face.getOffsetX() * 0.5, face.getOffsetY() * 0.5, face.getOffsetZ() * 0.5);
         Vec3d eye = p.getEyePos();
         Rotations.sendLook(p, Rotations.yawTo(eye, hit), Rotations.pitchTo(eye, hit));
@@ -520,13 +520,13 @@ public class TravelController {
                 int original = p.getInventory().getSelectedSlot();
                 int hb = slot < 9 ? slot : original;
                 if (slot >= 9) InvHelper.swap(c, p, slot, hb);
-                p.getInventory().setSelectedSlot(hb);
+                InvHelper.select(p, hb);
                 Vec3d eye = p.getEyePos();
                 Rotations.sendLook(p, Rotations.yawTo(eye, spot), Rotations.pitchTo(eye, spot));
                 c.interactionManager.interactItem(p, Hand.MAIN_HAND);
                 p.swingHand(Hand.MAIN_HAND);
                 if (slot >= 9) InvHelper.swap(c, p, slot, hb);
-                p.getInventory().setSelectedSlot(original);
+                InvHelper.select(p, original);
             }
             case RIDE -> {
                 AbstractBoatEntity b = boat;

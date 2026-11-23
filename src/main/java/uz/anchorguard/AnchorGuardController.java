@@ -61,7 +61,7 @@ public class AnchorGuardController {
         int original = p.getInventory().getSelectedSlot();
         int placed = placeGuards(c, p, need, cfg, anchor);
         // vanilla shu bosish bilan anchor'ni qo'yadi - qo'ldagi slot anchor bo'lib qolishi kerak
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
         if (placed > 0) say(p, "§aAnchor guard: " + placed + " blok");
         return ActionResult.PASS;
     }
@@ -152,7 +152,7 @@ public class AnchorGuardController {
         int placed = 0;
         internal = true;
         try {
-            p.getInventory().setSelectedSlot(slot);
+            InvHelper.select(p, slot);
             for (BlockPos g : need) {
                 if (!(p.getInventory().getStack(slot).getItem() instanceof BlockItem)) break;
                 BlockHitResult hit = support(c.world, g, anchor);
@@ -168,7 +168,7 @@ public class AnchorGuardController {
             if (placed > 0) look(p, yaw, pitch);
             p.setYaw(yaw);
             p.setPitch(pitch);
-            p.getInventory().setSelectedSlot(original);
+            InvHelper.select(p, original);
             if (borrowed != null && InvHelper.returnItems()) InvHelper.swap(c, p, borrowed[0], borrowed[1]);
             borrowed = null;
         }

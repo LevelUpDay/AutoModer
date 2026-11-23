@@ -67,7 +67,7 @@ public class PvpController {
         if (mace >= 0 && !p.isOnGround() && p.fallDistance >= cfg.maceMinFall && p.getVelocity().y < 0
                 && reachDist <= melee + 0.3) {
             if (Rotations.turn(p, Rotations.yawTo(eye, center), Rotations.pitchTo(eye, center))) {
-                p.getInventory().setSelectedSlot(mace);   // bir tickda almashtirib uramiz - zarba kuchsizlanmaydi
+                InvHelper.select(p, mace);   // bir tickda almashtirib uramiz - zarba kuchsizlanmaydi
                 c.interactionManager.attackEntity(p, target);
                 p.swingHand(Hand.MAIN_HAND);
                 state = "mace";
@@ -94,7 +94,7 @@ public class PvpController {
             boolean shieldUp = cfg.axeShield && target.isBlocking() && axe >= 0;
             if (cfg.spearMelee && sp >= 0 && !shieldUp) {
                 // nayza bir tickda olinadi va jab qilinadi (cooldown yo'qolmaydi)
-                if (aimed) p.getInventory().setSelectedSlot(sp);
+                if (aimed) InvHelper.select(p, sp);
                 if (aimed && lungeReady(c, p, cfg)) {
                     c.interactionManager.attackWithPiercingWeapon(
                             p.getMainHandStack().get(DataComponentTypes.PIERCING_WEAPON));
@@ -110,7 +110,7 @@ public class PvpController {
             if (weapon < 0) weapon = spearSlot(p);
             if (weapon < 0) return;
             if (p.getInventory().getSelectedSlot() != weapon) {
-                p.getInventory().setSelectedSlot(weapon);
+                InvHelper.select(p, weapon);
                 state = "qurol";
                 return;   // cooldown yangi qurol bilan to'lsin
             }
@@ -151,7 +151,7 @@ public class PvpController {
         float pitch = cfg.flatten && reachDist > 6 ? 0.0f : Rotations.pitchTo(eye, center);
         boolean aimed = Rotations.turn(p, Rotations.yawTo(eye, center), pitch);
         // nayzani jab tickining o'zida olamiz - cooldown nolga tushmaydi (1 tick swap)
-        if (aimed) p.getInventory().setSelectedSlot(spear);
+        if (aimed) InvHelper.select(p, spear);
         if (aimed && lungeReady(c, p, cfg)) {
             PiercingWeaponComponent pw = p.getMainHandStack().get(DataComponentTypes.PIERCING_WEAPON);
             c.interactionManager.attackWithPiercingWeapon(pw);
@@ -166,14 +166,14 @@ public class PvpController {
     private static void launch(MinecraftClient c, ClientPlayerEntity p, int wind, float yaw) {
         int original = p.getInventory().getSelectedSlot();
         float oy = p.getYaw(), op = p.getPitch();
-        p.getInventory().setSelectedSlot(wind);
+        InvHelper.select(p, wind);
         p.setYaw(yaw);
         p.setPitch(90.0f);
         c.interactionManager.interactItem(p, Hand.MAIN_HAND);
         p.swingHand(Hand.MAIN_HAND);
         p.setYaw(oy);
         p.setPitch(op);
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
     }
 
     private static boolean lungeReady(MinecraftClient c, ClientPlayerEntity p, PvpConfig cfg) {

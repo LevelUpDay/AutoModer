@@ -53,14 +53,14 @@ public class MaceController {
         if (mace < 0) return false;
         Vec3d center = target.getBoundingBox().getCenter();
         Rotations.sendLook(p, Rotations.yawTo(eye, center), Rotations.pitchTo(eye, center));
-        p.getInventory().setSelectedSlot(mace);
+        InvHelper.select(p, mace);
         c.interactionManager.attackEntity(p, target);
         p.swingHand(Hand.MAIN_HAND);
         last = String.format("%s %.1f blok (elytra)", target.getName().getString(), p.fallDistance);
         cooldown = Math.max(1, cfg.delay);
         armedTarget = null;
         if (cfg.after == 1 && mace != original) {
-            if (cfg.returnDelay <= 0) p.getInventory().setSelectedSlot(original);
+            if (cfg.returnDelay <= 0) InvHelper.select(p, original);
             else {
                 returnSlot = original;
                 returnIn = cfg.returnDelay;
@@ -80,7 +80,7 @@ public class MaceController {
         }
         // eski slotga qaytish (kechikish bilan)
         if (returnIn >= 0 && returnIn-- == 0) {
-            if (returnSlot >= 0) p.getInventory().setSelectedSlot(returnSlot);
+            if (returnSlot >= 0) InvHelper.select(p, returnSlot);
             returnSlot = -1;
         }
         if (cooldown > 0) cooldown--;
@@ -117,7 +117,7 @@ public class MaceController {
         if (cfg.axeShield && target.isBlocking()) {
             int axe = weapon(p, "_axe");
             if (axe >= 0) {
-                p.getInventory().setSelectedSlot(axe);
+                InvHelper.select(p, axe);
                 c.interactionManager.attackEntity(p, target);
                 p.swingHand(Hand.MAIN_HAND);
                 cooldown = 1;
@@ -127,13 +127,13 @@ public class MaceController {
         }
         int mace = cfg.autoSwitch ? mace(p, target, cfg) : (p.getMainHandStack().isOf(Items.MACE) ? original : -1);
         if (mace < 0) return;
-        p.getInventory().setSelectedSlot(mace);   // bir tickda almashtirib uramiz
+        InvHelper.select(p, mace);   // bir tickda almashtirib uramiz
         c.interactionManager.attackEntity(p, target);
         p.swingHand(Hand.MAIN_HAND);
         last = String.format("%s %.1f blok", target.getName().getString(), p.fallDistance);
         cooldown = Math.max(1, cfg.delay);
         if (cfg.after == 1 && mace != original) {
-            if (cfg.returnDelay <= 0) p.getInventory().setSelectedSlot(original);
+            if (cfg.returnDelay <= 0) InvHelper.select(p, original);
             else {
                 returnSlot = original;
                 returnIn = cfg.returnDelay;

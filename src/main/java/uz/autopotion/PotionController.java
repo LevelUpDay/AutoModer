@@ -120,9 +120,9 @@ public class PotionController {
         if (!isThrowable(stack, cfg)) return;
         RegistryEntry<StatusEffect> kind = mainEffect(stack);
         int original = p.getInventory().getSelectedSlot();
-        p.getInventory().setSelectedSlot(slot);
+        InvHelper.select(p, slot);
         c.interactionManager.interactItem(p, Hand.MAIN_HAND);
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
         cooldown = Math.max(1, cfg.cooldownTicks);
         if (borrowed != null && borrowed[1] == slot && InvHelper.returnItems()) {
             // eski joyiga: qolgan damlamalar inventarga, hotbar'dagi narsa o'z slotiga

@@ -322,7 +322,7 @@ public class TntController {
             boolean aimed = Rotations.turn(p, aim[0], aim[1], 1.5f);
             if (phase == 0) {
                 if (!aimed && ++t < 60) return false;
-                p.getInventory().setSelectedSlot(slot);
+                InvHelper.select(p, slot);
                 c.interactionManager.interactItem(p, Hand.MAIN_HAND);
                 c.options.useKey.setPressed(true);   // aks holda vanilla kamonni darhol qo'yib yuboradi
                 drawing = true;
