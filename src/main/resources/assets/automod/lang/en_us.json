@@ -48,6 +48,8 @@
   "key.automace.toggle": "Auto Mace on/off",
   "key.category.autotravel.main": "Auto Travel",
   "key.autotravel.toggle": "Auto Travel on/off",
+  "key.category.automine.main": "Auto Mine",
+  "key.automine.toggle": "Auto Mine on/off",
   "key.category.crystalhud.main": "Crystal HUD",
   "key.crystalhud.toggle": "Crystal HUD on/off"
 }
