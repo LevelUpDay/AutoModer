@@ -145,10 +145,10 @@ public class CrystalHudClient implements ClientModInitializer {
         float yaw = p.getYaw(), pitch = p.getPitch();
         Vec3d eye = p.getEyePos();
         Rotations.sendLook(p, Rotations.yawTo(eye, hitVec), Rotations.pitchTo(eye, hitVec));
-        p.getInventory().setSelectedSlot(slot);
+        InvHelper.select(p, slot);
         c.interactionManager.interactBlock(p, Hand.MAIN_HAND, new BlockHitResult(hitVec, Direction.UP, ground, false));
         p.swingHand(Hand.MAIN_HAND);
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
         Rotations.sendLook(p, yaw, pitch);
         if (borrowedInv >= 0 && InvHelper.returnItems()) {
             InvHelper.swap(c, p, borrowedInv, borrowedHotbar);

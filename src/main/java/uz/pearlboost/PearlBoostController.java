@@ -234,14 +234,14 @@ public class PearlBoostController {
         float pitch = (float) Math.toDegrees(-Math.asin(Math.max(-1, Math.min(1, d.y))));
         int original = p.getInventory().getSelectedSlot();
         float oy = p.getYaw(), op = p.getPitch();
-        p.getInventory().setSelectedSlot(slot);
+        InvHelper.select(p, slot);
         p.setYaw(yaw);
         p.setPitch(pitch);
         c.interactionManager.interactItem(p, Hand.MAIN_HAND);
         p.swingHand(Hand.MAIN_HAND);
         p.setYaw(oy);
         p.setPitch(op);
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
     }
 
     /** Snaryadlar otuvchi tezligini oladi: x/z har doim, y - faqat havoda. */

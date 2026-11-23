@@ -277,7 +277,7 @@ public class PlayerChaseController {
         Rotations.sendLook(p, Rotations.yawTo(eye, center), Rotations.pitchTo(eye, center));
         int w = maceSlot(p, t);
         if (w < 0) w = melee(p);
-        if (w >= 0) p.getInventory().setSelectedSlot(w);
+        if (w >= 0) InvHelper.select(p, w);
         c.interactionManager.attackEntity(p, t);
         p.swingHand(Hand.MAIN_HAND);
         p.setYaw(oy);
@@ -288,14 +288,14 @@ public class PlayerChaseController {
     private static void windJump(MinecraftClient c, ClientPlayerEntity p, int wind, float yaw) {
         int original = p.getInventory().getSelectedSlot();
         float oy = p.getYaw(), op = p.getPitch();
-        p.getInventory().setSelectedSlot(wind);
+        InvHelper.select(p, wind);
         p.setYaw(yaw);
         p.setPitch(90.0f);
         c.interactionManager.interactItem(p, Hand.MAIN_HAND);
         p.swingHand(Hand.MAIN_HAND);
         p.setYaw(oy);
         p.setPitch(op);
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
     }
 
     private static int hotbar(ClientPlayerEntity p, net.minecraft.item.Item item) {

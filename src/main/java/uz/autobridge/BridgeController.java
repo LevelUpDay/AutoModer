@@ -394,10 +394,10 @@ public class BridgeController {
             Vec3d eye = p.getEyePos();
             Rotations.sendLook(p, Rotations.yawTo(eye, hit), Rotations.pitchTo(eye, hit));
         }
-        p.getInventory().setSelectedSlot(hotbar);
+        InvHelper.select(p, hotbar);
         c.interactionManager.interactBlock(p, Hand.MAIN_HAND, new BlockHitResult(hit, face, against, false));
         p.swingHand(Hand.MAIN_HAND);
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
         if (silent) Rotations.sendLook(p, oy, op);
         if (borrowed != null && InvHelper.returnItems()) InvHelper.swap(c, p, borrowed[0], borrowed[1]);
         return true;

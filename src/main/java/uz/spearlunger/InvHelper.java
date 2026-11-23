@@ -3,6 +3,7 @@ package uz.spearlunger;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.screen.slot.SlotActionType;
 
 /**
@@ -67,5 +68,19 @@ public final class InvHelper {
     /** Olingan narsani eski joyiga qaytarish kerakmi (Anti-cheat: "Joyiga qaytarish"). */
     public static boolean returnItems() {
         return Config.get().ac().returnItems;
+    }
+
+    /**
+     * Hotbar slotini almashtiradi VA serverga xabar beradi (UpdateSelectedSlotC2SPacket) - xuddi raqam tugmasini
+     * bosgandek. setSelectedSlot() yolg'iz o'zi faqat mahalliy (client) holatni o'zgartiradi: shu paket yuborilmasa
+     * server hamon eski slot tanlangan deb biladi va siz "qo'lingizda yo'q" narsani ishlatganingizni ko'radi - bu
+     * anti-cheat tomonidan ban sababi bo'lishi mumkin. Barcha modullar hotbar slotini almashtirishdan oldin (va
+     * keyin eski slotga qaytarishda ham) shu metoddan foydalanishi kerak, to'g'ridan-to'g'ri
+     * `getInventory().setSelectedSlot(...)` emas.
+     */
+    public static void select(ClientPlayerEntity p, int slot) {
+        if (slot < 0 || slot >= 9 || p.getInventory().getSelectedSlot() == slot) return;
+        p.getInventory().setSelectedSlot(slot);
+        p.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(slot));
     }
 }

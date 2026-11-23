@@ -89,7 +89,7 @@ class AntiWeb {
     private void use(MinecraftClient c, ClientPlayerEntity p, int s, Item expected, Vec3d at) {
         float yaw = p.getYaw(), pitch = p.getPitch();
         Vec3d eye = p.getEyePos();
-        CobwebController.select(p, s);
+        InvHelper.select(p, s);
         if (!p.getMainHandStack().isOf(expected)) return;   // hali qo'lga kelmagan - keyingi tickda qaytadan urinamiz
         p.setYaw(Rotations.yawTo(eye, at));
         p.setPitch(Rotations.pitchTo(eye, at));
@@ -100,7 +100,7 @@ class AntiWeb {
     }
 
     private void finish(MinecraftClient c, ClientPlayerEntity p) {
-        if (original >= 0) CobwebController.select(p, original);
+        if (original >= 0) InvHelper.select(p, original);
         if (borrowed != null && InvHelper.returnItems()) InvHelper.swap(c, p, borrowed[0], borrowed[1]);
         borrowed = null;
         phase = Phase.IDLE;

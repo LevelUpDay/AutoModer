@@ -259,32 +259,37 @@ public class TntController {
                 && !p.getBoundingBox().intersects(new Box(fireBase.up()))
                 && eye.distanceTo(Vec3d.ofCenter(fireBase.up())) <= cf.reachTenths / 10.0;
 
-        // ---- qadamlar
-        addUse(c, p, cartSlot, rail);
-        if (igniter != null) {
-            if (onPath) addUse(c, p, ignSlot, fireBase);
-            else steps.add(new WaitCartStep(c, p, rail, ignSlot));
-        }
-        if (mode == 3) {
-            BlockPos cand = null;
-            for (Direction d : new Direction[] { toMe.getOpposite(), toMe.rotateYClockwise(), toMe.rotateYCounterclockwise(), toMe }) {
-                if (canPlaceOnTop(w, rail.down().offset(d))) { cand = rail.down().offset(d); break; }
+        // ---- qadamlar (zanjir: cartCount > 1 bo'lsa, har safar oldingisi portlab bo'lguncha kutib, yana qo'yadi)
+        int carts = Math.max(1, cf.cartCount);
+        for (int i = 0; i < carts; i++) {
+            if (i > 0) steps.add(new WaitClearStep(c, p, rail));
+            addUse(c, p, cartSlot, rail);
+            if (igniter != null) {
+                if (onPath) addUse(c, p, ignSlot, fireBase);
+                else steps.add(new WaitCartStep(c, p, rail, ignSlot));
             }
-            if (cand != null) addUse(c, p, redSlot, cand);
-            else steps.add(() -> { say(p, "§eRedstone block qo'yib bo'lmadi (joy mos emas).", false); return true; });
+            if (mode == 3) {
+                BlockPos cand = null;
+                for (Direction d : new Direction[] { toMe.getOpposite(), toMe.rotateYClockwise(), toMe.rotateYCounterclockwise(), toMe }) {
+                    if (canPlaceOnTop(w, rail.down().offset(d))) { cand = rail.down().offset(d); break; }
+                }
+                if (cand != null) addUse(c, p, redSlot, cand);
+                else steps.add(() -> { say(p, "§eRedstone block qo'yib bo'lmadi (joy mos emas).", false); return true; });
+            }
+            if (useBow) steps.add(new BowShotStep(c, p, bowSlot, rail, Math.max(4, cfg.bowPullTicks)));
         }
-        if (useBow) steps.add(new BowShotStep(c, p, bowSlot, rail, Math.max(4, cfg.bowPullTicks)));
 
         if (ac.restoreView && (ac.rotateToBlocks || useBow)) {
             steps.add(() -> Rotations.turn(p, origYaw, origPitch));
         }
         steps.add(() -> {
             if (cfg.restoreInventory) restoreSwaps(c, p, swaps);
-            p.getInventory().setSelectedSlot(original);
+            InvHelper.select(p, original);
             return true;
         });
 
-        say(p, "§aAuto TNT" + (useBow ? (flame ? " (Flame kamon)" : onPath ? " (olov + kamon)" : " (flint + kamon)") : ""), true);
+        say(p, "§aAuto TNT" + (carts > 1 ? " x" + carts : "")
+                + (useBow ? (flame ? " (Flame kamon)" : onPath ? " (olov + kamon)" : " (flint + kamon)") : ""), true);
         ok(p);
         return null;
     }
@@ -322,7 +327,7 @@ public class TntController {
             boolean aimed = Rotations.turn(p, aim[0], aim[1], 1.5f);
             if (phase == 0) {
                 if (!aimed && ++t < 60) return false;
-                p.getInventory().setSelectedSlot(slot);
+                InvHelper.select(p, slot);
                 c.interactionManager.interactItem(p, Hand.MAIN_HAND);
                 c.options.useKey.setPressed(true);   // aks holda vanilla kamonni darhol qo'yib yuboradi
                 drawing = true;
@@ -502,9 +507,35 @@ public class TntController {
                 Vec3d eye = p.getEyePos(), to = cart.getBoundingBox().getCenter();
                 if (!Rotations.turn(p, Rotations.yawTo(eye, to), Rotations.pitchTo(eye, to)) && ++waited <= 60) return false;
             }
-            p.getInventory().setSelectedSlot(slot);
+            InvHelper.select(p, slot);
             c.interactionManager.interactEntity(p, cart, Hand.MAIN_HAND);
             return true;
+        }
+    }
+
+    /** Zanjirda keyingi cartni qo'yishdan oldin, oldingisi portlab (yo'q bo'lib) bo'lguncha kutadi. Juda uzoq
+     *  kutilsa (masalan portlamagan) baribir davom etadi - keyingi qadam shunchaki ishlamay qoladi, xavfli emas. */
+    private class WaitClearStep implements Step {
+        private final MinecraftClient c;
+        private final ClientPlayerEntity p;
+        private final BlockPos railPos;
+        private int waited = 0;
+
+        WaitClearStep(MinecraftClient c, ClientPlayerEntity p, BlockPos railPos) {
+            this.c = c; this.p = p; this.railPos = railPos;
+        }
+
+        @Override
+        public boolean run() {
+            if (aborting) return true;
+            List<Entity> found = c.world.getEntitiesByClass(Entity.class, new Box(railPos).expand(0.8),
+                    e -> e.getType() == EntityType.TNT_MINECART);
+            if (found.isEmpty()) return true;
+            if (++waited > 100) {
+                say(p, "§eOldingi minecart portlamadi, zanjir davom etmasligi mumkin.", false);
+                return true;
+            }
+            return false;
         }
     }
 
@@ -518,7 +549,7 @@ public class TntController {
     }
 
     private void useOnBlock(MinecraftClient c, ClientPlayerEntity p, int slot, BlockPos base) {
-        p.getInventory().setSelectedSlot(slot);
+        InvHelper.select(p, slot);
         BlockHitResult r = new BlockHitResult(Vec3d.ofCenter(base).add(0, 0.5, 0), Direction.UP, base, false);
         internal = true;
         try {

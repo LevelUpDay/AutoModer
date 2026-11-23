@@ -13,6 +13,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import org.lwjgl.glfw.GLFW;
+import uz.spearlunger.InvHelper;
 import uz.spearlunger.mixin.HandledScreenAccessor;
 
 import java.util.Random;
@@ -99,7 +100,7 @@ public class TotemController {
                 // tanlangan slot oldingi tickda serverga yuborildi, endi F
                 p.networkHandler.sendPacket(new PlayerActionC2SPacket(
                         PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-                if (originalSlot >= 0) p.getInventory().setSelectedSlot(originalSlot);
+                if (originalSlot >= 0) InvHelper.select(p, originalSlot);
                 originalSlot = -1;
                 finish(c);
             }
@@ -122,7 +123,7 @@ public class TotemController {
             int h = hotbarTotem(p);
             if (h >= 0) {
                 originalSlot = p.getInventory().getSelectedSlot();
-                p.getInventory().setSelectedSlot(h);
+                InvHelper.select(p, h);
                 phase = Phase.HOTBAR_SWAP;
                 return;
             }
@@ -178,7 +179,7 @@ public class TotemController {
     }
 
     private void finish(MinecraftClient c) {
-        if (originalSlot >= 0 && c.player != null) c.player.getInventory().setSelectedSlot(originalSlot);
+        if (originalSlot >= 0 && c.player != null) InvHelper.select(c.player, originalSlot);
         originalSlot = -1;
         phase = Phase.IDLE;
         openedByUs = false;

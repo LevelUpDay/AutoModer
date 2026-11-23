@@ -18,11 +18,11 @@ public final class ElytraHelper {
         int original = p.getInventory().getSelectedSlot();
         int hb = slot < 9 ? slot : original;
         if (slot >= 9) InvHelper.swap(c, p, slot, hb);
-        p.getInventory().setSelectedSlot(hb);
+        InvHelper.select(p, hb);
         c.interactionManager.interactItem(p, Hand.MAIN_HAND);
         p.swingHand(Hand.MAIN_HAND);
         if (slot >= 9) InvHelper.swap(c, p, slot, hb);
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
     }
 
     public static int durability(ItemStack s) {
@@ -104,11 +104,11 @@ public final class ElytraHelper {
         int original = p.getInventory().getSelectedSlot();
         int hb = slot < 9 ? slot : original;
         if (slot >= 9) InvHelper.swap(c, p, slot, hb);
-        p.getInventory().setSelectedSlot(hb);
+        InvHelper.select(p, hb);
         c.interactionManager.interactItem(p, Hand.MAIN_HAND);
         p.swingHand(Hand.MAIN_HAND);
         if (slot >= 9) InvHelper.swap(c, p, slot, hb);
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
         return true;
     }
 

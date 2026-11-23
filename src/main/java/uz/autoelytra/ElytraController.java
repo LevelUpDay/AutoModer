@@ -88,7 +88,7 @@ public class ElytraController {
                     say(p, "§eAuto Elytra: elytra ochilmadi.");
                     return true;
                 }
-                if (hand == Hand.MAIN_HAND) p.getInventory().setSelectedSlot(original);
+                if (hand == Hand.MAIN_HAND) InvHelper.select(p, original);
                 if (p.getStackInHand(hand).isOf(Items.FIREWORK_ROCKET)) {
                     c.interactionManager.interactItem(p, hand);
                 }
@@ -179,14 +179,14 @@ public class ElytraController {
         // 1-tick: (kerak bo'lsa inventardan olib kelib) elytra slotini tanlaymiz
         steps.add(() -> {
             if (invSlot >= 9) InvHelper.swap(c, p, invSlot, hotbar);
-            p.getInventory().setSelectedSlot(hotbar);
+            InvHelper.select(p, hotbar);
             return true;
         });
         // 2-tick: o'ng tugma - kiyamiz
         steps.add(() -> {
             ItemStack before = p.getEquippedStack(EquipmentSlot.CHEST);
             Item prev = before.isEmpty() ? null : before.getItem();
-            p.getInventory().setSelectedSlot(hotbar);
+            InvHelper.select(p, hotbar);
             c.interactionManager.interactItem(p, Hand.MAIN_HAND);
             p.swingHand(Hand.MAIN_HAND);
             if (rememberChest && ElytraConfig.get().restoreChest && prev != null && prev != Items.ELYTRA) {
@@ -198,7 +198,7 @@ public class ElytraController {
         // 3-tick: yechilgan narsani joyiga, o'zimiz eski slotga (firework)
         steps.add(() -> {
             if (invSlot >= 9) InvHelper.swap(c, p, invSlot, hotbar);
-            p.getInventory().setSelectedSlot(original);
+            InvHelper.select(p, original);
             return true;
         });
     }
@@ -239,13 +239,13 @@ public class ElytraController {
         int[] plate = findChestplate(p, cfg.fromInventory);
         if (plate != null) {
             if (plate[1] >= 9) InvHelper.swap(c, p, plate[1], plate[0]);
-            p.getInventory().setSelectedSlot(plate[0]);
+            InvHelper.select(p, plate[0]);
             c.interactionManager.interactItem(p, Hand.MAIN_HAND);
             if (plate[1] >= 9) InvHelper.swap(c, p, plate[1], plate[0]);
         } else {
             InvHelper.quickMove(c, p, 6);   // zirh sloti 6 = ko'krak
         }
-        p.getInventory().setSelectedSlot(mace >= 0 ? mace : original);
+        InvHelper.select(p, mace >= 0 ? mace : original);
         // yechilishi bilan: masofada bo'lsa shu tickda mace bilan uramiz, bo'lmasa Auto Mace keyingi ticklarda darhol uradi
         if (!AutoMaceClient.CONTROLLER.hitNow(c, p, enemy)) AutoMaceClient.CONTROLLER.arm(enemy, 40);
         say(p, "§cAuto Elytra: " + enemy.getName().getString() + " - elytra yechildi");
