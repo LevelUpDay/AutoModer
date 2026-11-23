@@ -4,6 +4,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.item.Items;
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -33,10 +34,21 @@ public final class PearlHelper {
         Aim aim = solve(start, target, add);
         if (aim == null || !verify(c.world, p, start, aim, add, target, 2.5)) return false;
         int original = p.getInventory().getSelectedSlot();
-        p.getInventory().setSelectedSlot(slot);
+        select(p, slot);
         throwPearl(c, p, Hand.MAIN_HAND, aim);
-        p.getInventory().setSelectedSlot(original);
+        select(p, original);
         return true;
+    }
+
+    /**
+     * Hotbar slotini almashtiradi VA serverga xabar beradi (UpdateSelectedSlotC2SPacket) - xuddi raqam tugmasini
+     * bosgandek. setSelectedSlot() yolg'iz o'zi faqat mahalliy (client) holatni o'zgartiradi: shu paket yuborilmasa
+     * server hamon eski slot tanlangan deb biladi va siz "qo'lingizda yo'q" narsani ishlatganingizni ko'radi.
+     */
+    private static void select(ClientPlayerEntity p, int slot) {
+        if (slot < 0 || slot >= 9 || p.getInventory().getSelectedSlot() == slot) return;
+        p.getInventory().setSelectedSlot(slot);
+        p.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(slot));
     }
 
     // ------------------------------------------------------------ otish
