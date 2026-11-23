@@ -324,7 +324,7 @@ public class ElytraPvpController {
         if (cfg.stunSlam && t.isBlocking()) {
             int axe = weapon(p, "_axe");
             if (axe >= 0) {
-                p.getInventory().setSelectedSlot(axe);
+                InvHelper.select(p, axe);
                 c.interactionManager.attackEntity(p, t);
                 p.swingHand(Hand.MAIN_HAND);
                 slam = true;
@@ -332,7 +332,7 @@ public class ElytraPvpController {
         }
         int w = p.fallDistance >= 1.5 ? maceSlot(p, t) : -1;
         if (w < 0) w = melee(p);
-        if (w >= 0) p.getInventory().setSelectedSlot(w);
+        if (w >= 0) InvHelper.select(p, w);
         c.interactionManager.attackEntity(p, t);
         p.swingHand(Hand.MAIN_HAND);
         last = String.format("%s%s %.1f", slam ? "stun slam, " : "", p.getMainHandStack().isOf(Items.MACE) ? "mace" : "zarba",
@@ -374,7 +374,7 @@ public class ElytraPvpController {
             return;
         }
         if (eatCount < 0) eatCount = s.getCount();
-        p.getInventory().setSelectedSlot(slot);
+        InvHelper.select(p, slot);
         c.options.useKey.setPressed(true);
     }
 
@@ -404,14 +404,14 @@ public class ElytraPvpController {
     private static void windJump(MinecraftClient c, ClientPlayerEntity p, int wind, float yaw) {
         int original = p.getInventory().getSelectedSlot();
         float oy = p.getYaw(), op = p.getPitch();
-        p.getInventory().setSelectedSlot(wind);
+        InvHelper.select(p, wind);
         p.setYaw(yaw);
         p.setPitch(90.0f);
         c.interactionManager.interactItem(p, Hand.MAIN_HAND);
         p.swingHand(Hand.MAIN_HAND);
         p.setYaw(oy);
         p.setPitch(op);
-        p.getInventory().setSelectedSlot(original);
+        InvHelper.select(p, original);
     }
 
     private static int hotbar(ClientPlayerEntity p, net.minecraft.item.Item item) {

@@ -82,7 +82,7 @@ public class FallComboController {
         ticks = 0;
         int spear = cfg.useSpear ? find(p, "_spear") : -1;
         if (spear >= 0 && !p.isUsingItem()) {
-            p.getInventory().setSelectedSlot(spear);
+            InvHelper.select(p, spear);
             c.interactionManager.interactItem(p, Hand.MAIN_HAND);
             c.options.useKey.setPressed(true);   // bosib turmasak vanilla zaryadni darhol to'xtatadi
             holdingUse = true;
@@ -137,7 +137,7 @@ public class FallComboController {
         int weapon = sword >= 0 ? sword : axe;
         if (weapon >= 0 && !cfg.sameTickSwap) {
             // avval almashtirib, keyingi tickda uramiz
-            p.getInventory().setSelectedSlot(weapon);
+            InvHelper.select(p, weapon);
             pendingAttackSlot = weapon;
             phase = Phase.SWORD_AFTER_AXE;
             return;
@@ -147,8 +147,8 @@ public class FallComboController {
     }
 
     private void attack(MinecraftClient c, ClientPlayerEntity p, int slot, FallComboConfig cfg) {
-        p.getInventory().setSelectedSlot(slot);
-        // attackEntity tanlangan slotni o'zi yuboradi: server almashtirishni zarba bilan bir tickda oladi
+        // attackEntity() o'zi ham slotni serverga sinxronlaydi, lekin ishonchlilik uchun aniq ham yuboramiz
+        InvHelper.select(p, slot);
         c.interactionManager.attackEntity(p, target);
         p.swingHand(Hand.MAIN_HAND);
     }
@@ -159,8 +159,8 @@ public class FallComboController {
             c.interactionManager.stopUsingItem(p);
         }
         int mace = FallComboConfig.get().endOnMace ? find(p, "mace") : -1;
-        if (ok && mace >= 0) p.getInventory().setSelectedSlot(mace);
-        else if (originalSlot >= 0) p.getInventory().setSelectedSlot(originalSlot);
+        if (ok && mace >= 0) InvHelper.select(p, mace);
+        else if (originalSlot >= 0) InvHelper.select(p, originalSlot);
         originalSlot = -1;
         target = null;
         phase = p.isOnGround() ? Phase.IDLE : Phase.DONE;
