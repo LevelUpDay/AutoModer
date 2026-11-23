@@ -25,10 +25,10 @@ public class CobwebConfig {
 
     /** Ustingizdan (mace bilan) tushayotgan dushman bo'lsa boshingiz ustiga. */
     public boolean antiMace = true;
-    /** Anti-web: siz ipda qolsangiz suv paqiri bilan ipni yo'q qilib, suvni qaytarib oladi. */
+    /** Anti-web: siz ipda qolsangiz suv paqiri bilan ipni yo'q qilib, suvni qaytarib oladi. Hech qachon kesmaydi. */
     public boolean antiWeb = true;
-    /** Suv bo'lmasa (yoki Nether'da) qaychi/qilich bilan kesadi. */
-    public boolean antiWebCut = true;
+    /** Suv bo'lmasa (yoki Nether'da): qarab turgan tomonga ender pearl otib ipdan chiqib ketadi. */
+    public boolean antiWebPearl = false;
 
     /** Qo'yish masofasi (0.1 blok). */
     public int reachTenths = 45;

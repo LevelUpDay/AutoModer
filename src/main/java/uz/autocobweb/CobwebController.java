@@ -10,6 +10,7 @@ import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -217,22 +218,34 @@ public class CobwebController {
         int slot = webSlot(c, p, cfg.fromInventory);
         if (slot < 0) return;
         int original = p.getInventory().getSelectedSlot();
-        p.getInventory().setSelectedSlot(slot);
+        select(p, slot);
         // cobweb haqiqatan ham qo'lga olinganini tekshiramiz - aks holda hozirgi (boshqa) narsani qo'ymaymiz
         if (!p.getMainHandStack().isOf(Items.COBWEB)) {
-            p.getInventory().setSelectedSlot(original);
+            select(p, original);
             if (borrowed != null && InvHelper.returnItems()) InvHelper.swap(c, p, borrowed[0], borrowed[1]);
             borrowed = null;
             return;
         }
         c.interactionManager.interactBlock(p, Hand.MAIN_HAND, new BlockHitResult(pl.hit, pl.side, pl.base, false));
         p.swingHand(Hand.MAIN_HAND);
-        p.getInventory().setSelectedSlot(original);
+        select(p, original);
         if (borrowed != null && InvHelper.returnItems()) InvHelper.swap(c, p, borrowed[0], borrowed[1]);
         borrowed = null;
         cooldown = Math.max(0, cfg.placeDelay);
         aiming = null;
         if (cfg.messages) p.sendMessage(Text.literal("§7Cobweb: §f" + pl.why), true);
+    }
+
+    /**
+     * Hotbar slotini almashtiradi VA serverga xabar beradi (UpdateSelectedSlotC2SPacket) - xuddi raqam tugmasini
+     * bosgandek. setSelectedSlot() yolg'iz o'zi faqat mahalliy (client) holatni o'zgartiradi: shu paket yuborilmasa
+     * server hamon eski slot tanlangan deb biladi va siz "qo'lingizda yo'q" narsani qo'yganingizni ko'radi - bu
+     * anti-cheat tomonidan ban sababi bo'lishi mumkin.
+     */
+    static void select(ClientPlayerEntity p, int slot) {
+        if (slot < 0 || slot >= 9 || p.getInventory().getSelectedSlot() == slot) return;
+        p.getInventory().setSelectedSlot(slot);
+        p.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(slot));
     }
 
     /** Hotbar'dagi cobweb sloti; kerak bo'lsa (move=true) inventardan hotbar'ga olib keladi. */

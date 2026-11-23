@@ -7,99 +7,90 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.RaycastContext;
 import net.minecraft.world.World;
 import uz.spearlunger.InvHelper;
+import uz.spearlunger.PearlHelper;
 import uz.spearlunger.Rotations;
 
 /**
  * Anti-web: o'zingiz cobweb ichida qolsangiz - suv paqirini tanlab ipga suv quyadi (ip yo'q bo'ladi), keyingi tickda
- * suvni paqirga qaytarib oladi va eski slotga qaytadi. Suv bo'lmasa (yoki Nether'da) qaychi/qilich bilan kesadi.
- * Qarash faqat paketlarda o'zgaradi - kamera qimirlamaydi.
+ * suvni qaytarib oladi va eski slotga qaytadi. Suv bo'lmasa (yoki Nether'da) va sozlamada ruxsat berilgan bo'lsa,
+ * qarab turgan tomonga ender pearl otib o'zi ipdan chiqib ketadi (hech narsa sindirmaydi/kesmaydi - ip hech qachon
+ * qilich bilan kesilmaydi, bu juda sekin va shubhali ko'rinadi). Ikkisi ham bo'lmasa hech narsa qilmaydi - o'zingiz
+ * yurib chiqguningizcha kutadi. Qarash faqat paketlarda o'zgaradi - kamera qimirlamaydi.
  */
 class AntiWeb {
-    private enum Phase { IDLE, PICKUP, CUT }
+    private enum Phase { IDLE, PICKUP }
 
     private Phase phase = Phase.IDLE;
     private BlockPos web = null;
     private int slot = -1, original = -1, ticks = 0;
     private int[] borrowed = null;
+    /** Pearl otilgandan keyin tushib bo'lgunicha yana otmaslik uchun. */
+    private int pearlCooldown = 0;
 
     /** true = shu tick band (ipdan chiqyapmiz), boshqa amal qilinmasin. */
     boolean tick(MinecraftClient c, ClientPlayerEntity p, CobwebConfig cfg) {
         ClientWorld w = c.world;
-        switch (phase) {
-            case PICKUP -> {
-                ticks++;
-                BlockPos src = waterSource(w, web);
-                if (src != null && p.getInventory().getStack(slot).isOf(Items.BUCKET)) {
-                    use(c, p, slot, Vec3d.ofCenter(src));
-                    finish(c, p);
-                } else if (ticks > 10) {
-                    finish(c, p);
-                }
-                return true;
+        if (pearlCooldown > 0) pearlCooldown--;
+
+        if (phase == Phase.PICKUP) {
+            ticks++;
+            BlockPos src = waterSource(w, web);
+            if (src != null && p.getInventory().getStack(slot).isOf(Items.BUCKET)) {
+                use(c, p, slot, Items.BUCKET, Vec3d.ofCenter(src));
+                finish(c, p);
+            } else if (ticks > 10) {
+                finish(c, p);
             }
-            case CUT -> {
-                ticks++;
-                if (!isWeb(w, web) || ticks > 40) {
-                    c.interactionManager.cancelBlockBreaking();
-                    finish(c, p);
-                    return true;
-                }
-                p.getInventory().setSelectedSlot(slot);
-                c.interactionManager.updateBlockBreakingProgress(web, Direction.UP);
-                p.swingHand(Hand.MAIN_HAND);
-                return true;
-            }
-            default -> { }
+            return true;
         }
 
         BlockPos feet = p.getBlockPos();
         BlockPos target = isWeb(w, feet) ? feet : isWeb(w, feet.up()) ? feet.up() : null;
         if (target == null) return false;
-        web = target;
-        original = p.getInventory().getSelectedSlot();
-        ticks = 0;
 
         boolean nether = w.getRegistryKey() == World.NETHER;   // u yerda suv bug'lanadi
-        int bucket = nether ? -1 : prepare(c, p, Items.WATER_BUCKET);
-        if (bucket >= 0) {
-            slot = bucket;
-            use(c, p, bucket, Vec3d.ofCenter(target));
-            phase = Phase.PICKUP;
-            say(p, "§bAnti-web: suv");
-            return true;
+        if (!nether) {
+            int bucket = prepare(c, p, Items.WATER_BUCKET);
+            if (bucket >= 0) {
+                web = target;
+                original = p.getInventory().getSelectedSlot();
+                ticks = 0;
+                slot = bucket;
+                use(c, p, bucket, Items.WATER_BUCKET, Vec3d.ofCenter(target));
+                phase = Phase.PICKUP;
+                say(p, "§bAnti-web: suv");
+                return true;
+            }
         }
-        if (!cfg.antiWebCut) return false;
-        int tool = prepare(c, p, Items.SHEARS);
-        if (tool < 0) tool = swordSlot(p);
-        if (tool < 0) return false;
-        slot = tool;
-        p.getInventory().setSelectedSlot(tool);
-        Vec3d eye = p.getEyePos(), to = Vec3d.ofCenter(target);
-        float yaw = p.getYaw(), pitch = p.getPitch();
-        Rotations.sendLook(p, Rotations.yawTo(eye, to), Rotations.pitchTo(eye, to));
-        c.interactionManager.attackBlock(target, Direction.UP);
-        p.swingHand(Hand.MAIN_HAND);
-        Rotations.sendLook(p, yaw, pitch);
-        phase = Phase.CUT;
-        say(p, "§bAnti-web: kesyapman");
-        return true;
+
+        if (cfg.antiWebPearl && pearlCooldown <= 0) {
+            Vec3d escape = escapePoint(w, p);
+            if (escape != null && PearlHelper.throwAt(c, p, escape)) {
+                pearlCooldown = 60;
+                say(p, "§bAnti-web: pearl");
+                return true;
+            }
+        }
+        return false;   // suv ham, pearl ham yo'q - hech narsa qilmaymiz, o'zingiz chiqib ketguningizcha kutamiz
     }
 
-    /** Slotni tanlab, o'sha nuqtaga qarab ishlatadi (yo'nalish otish paketida), qarashni qaytaradi. */
-    private void use(MinecraftClient c, ClientPlayerEntity p, int s, Vec3d at) {
+    /** Slotni tanlab (haqiqiy tanlov - serverga ham xabar beradi), o'sha nuqtaga qarab ishlatadi, qarashni qaytaradi. */
+    private void use(MinecraftClient c, ClientPlayerEntity p, int s, Item expected, Vec3d at) {
         float yaw = p.getYaw(), pitch = p.getPitch();
         Vec3d eye = p.getEyePos();
-        p.getInventory().setSelectedSlot(s);
+        CobwebController.select(p, s);
+        if (!p.getMainHandStack().isOf(expected)) return;   // hali qo'lga kelmagan - keyingi tickda qaytadan urinamiz
         p.setYaw(Rotations.yawTo(eye, at));
         p.setPitch(Rotations.pitchTo(eye, at));
         c.interactionManager.interactItem(p, Hand.MAIN_HAND);
@@ -109,7 +100,7 @@ class AntiWeb {
     }
 
     private void finish(MinecraftClient c, ClientPlayerEntity p) {
-        if (original >= 0) p.getInventory().setSelectedSlot(original);
+        if (original >= 0) CobwebController.select(p, original);
         if (borrowed != null && InvHelper.returnItems()) InvHelper.swap(c, p, borrowed[0], borrowed[1]);
         borrowed = null;
         phase = Phase.IDLE;
@@ -133,12 +124,26 @@ class AntiWeb {
         return -1;
     }
 
-    private static int swordSlot(ClientPlayerEntity p) {
-        for (int i = 0; i < 9; i++) {
-            ItemStack s = p.getInventory().getStack(i);
-            if (!s.isEmpty() && Registries.ITEM.getId(s.getItem()).getPath().endsWith("_sword")) return i;
+    /** Qarab turgan tomondan, devordan/bo'shliqdan bir oz narida, yerga tortib pearl tushadigan nuqta. */
+    private static Vec3d escapePoint(ClientWorld w, ClientPlayerEntity p) {
+        Vec3d eye = p.getEyePos();
+        float pitch = Math.max(-30f, Math.min(30f, p.getPitch()));
+        Vec3d dir = Vec3d.fromPolar(pitch, p.getYaw());
+        Vec3d far = eye.add(dir.multiply(6));
+        BlockHitResult hit = w.raycast(new RaycastContext(eye, far, RaycastContext.ShapeType.COLLIDER,
+                RaycastContext.FluidHandling.NONE, p));
+        Vec3d end = hit.getType() == HitResult.Type.BLOCK ? hit.getPos().subtract(dir.multiply(0.6)) : far;
+        BlockPos col = BlockPos.ofFloored(end.x, eye.y, end.z);
+        for (int dy = 2; dy >= -4; dy--) {
+            BlockPos ground = col.add(0, dy - 1, 0);
+            BlockPos feet = ground.up();
+            if (!w.getBlockState(ground).isSideSolidFullSquare(w, ground, Direction.UP)) continue;
+            if (isWeb(w, feet) || isWeb(w, feet.up())) continue;
+            if (!w.getBlockState(feet).getCollisionShape(w, feet).isEmpty()) continue;
+            if (!w.getFluidState(feet).isEmpty()) continue;   // lavaga/suvga tushmasin
+            return Vec3d.ofCenter(feet);
         }
-        return -1;
+        return null;
     }
 
     private static BlockPos waterSource(ClientWorld w, BlockPos around) {
