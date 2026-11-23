@@ -106,7 +106,7 @@ public class MineController {
         while (tries-- > 0) {
             String id = cfg.ores.get(Math.floorMod(oreIndex, cfg.ores.size()));
             Identifier rid = Identifier.tryParse(id);
-            Block block = rid == null ? null : Registries.BLOCK.getOrEmpty(rid).orElse(null);
+            Block block = rid != null && Registries.BLOCK.containsId(rid) ? Registries.BLOCK.get(rid) : null;
             if (block != null) {
                 BlockPos best = null;
                 double bestD = Double.MAX_VALUE;

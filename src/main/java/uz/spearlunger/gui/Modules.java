@@ -399,7 +399,7 @@ public final class Modules {
                     action("Sotish buyrug'i: /" + c.sellCommand + " (bosing - o'zgartirish)",
                             "Chat oynasini oldindan to'ldirib ochadi - matnni tahrirlab Enter bosing",
                             () -> net.minecraft.client.MinecraftClient.getInstance().setScreen(
-                                    new net.minecraft.client.gui.screen.ChatScreen("/mine sell " + c.sellCommand))),
+                                    new net.minecraft.client.gui.screen.ChatScreen("/mine sell " + c.sellCommand, false))),
                     group("Keraksiz bloklar"),
                     bool("Yerga tashlash", "Qazib olingan keraksiz bloklarni (ruda bo'lmasa) avtomatik tashlaydi",
                             () -> c.dropJunk, v -> c.dropJunk = v),
