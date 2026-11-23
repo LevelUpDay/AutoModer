@@ -25,6 +25,7 @@ import uz.spearlunger.Rotations;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 /**
@@ -36,6 +37,7 @@ import java.util.UUID;
  */
 public class CobwebController {
     private static final Direction[] HORIZONTAL = {Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST};
+    private static final Random RNG = new Random();
 
     /** Qo'yiladigan joy: web paydo bo'ladigan blok + qaysi blokning qaysi yuziga bosiladi. */
     private record Placement(BlockPos pos, BlockPos base, Direction side, Vec3d hit, String why) {}
@@ -141,7 +143,8 @@ public class CobwebController {
                 best = pl;
             }
         }
-        if (best != null && cfg.doubleWeb && !best.why.equals("Anti-mace")) followUp = best.pos.up();
+        if (best != null && !best.why.equals("Anti-mace") && cfg.doubleWebChance > 0
+                && RNG.nextInt(100) < cfg.doubleWebChance) followUp = best.pos.up();
         return best;
     }
 

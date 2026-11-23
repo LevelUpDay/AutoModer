@@ -7,6 +7,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -17,18 +18,21 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.EmptyBlockView;
+import uz.autotnt.AutoTntConfig;
 import uz.spearlunger.InvHelper;
 import uz.spearlunger.Rotations;
 
 import java.util.Random;
 
 /**
- * Yoqilganda (tugma yoki ClickGUI) o'zi harakatga tushadi: hozir qarab turgan tomonni (4 tomondan eng yaqinini)
- * yo'nalish qilib oladi va shu tomonga devorga yetguncha ko'prik quradi - keyin o'zi o'chadi. Qo'lda o'chirsangiz:
- * yerda bo'lsangiz darhol to'xtaydi, havoda (ko'prik ustida sakrab/tushib turgan paytda) bo'lsangiz avval
- * tagingizga (topilgan birinchi mos tomonga qarab) blok qo'yib, xavfsiz tushgandan keyin to'xtaydi.
- * Harakatni haqiqiy klaviatura tugmalarini (forward/back/sneak/jump) bosib turish orqali boshqaramiz -
- * xuddi odam o'zi bosgandek (uz.autotravel'dagi kabi usul).
+ * Yoqilganda (tugma yoki ClickGUI) o'zi harakatga tushadi: hozir qarab turgan tomonni (4 tomondan eng yaqinini, yoki
+ * diagonal yoqilgan bo'lsa 2 tomon orasida almashlab) yo'nalish qilib oladi va shu tomonga devorga/suvga/blok
+ * tugaguncha ko'prik quradi - keyin o'zi o'chadi. Qo'lda o'chirsangiz: yerda bo'lsangiz darhol to'xtaydi, havoda
+ * (ko'prik ustida sakrab/tushib turgan paytda) bo'lsangiz avval tagingizga (topilgan birinchi mos tomonga qarab)
+ * blok qo'yib, xavfsiz tushgandan keyin to'xtaydi. Havoda to'xtay olmasa (blok yo'q) - Auto Clutch moduli (agar
+ * yoqilgan bo'lsa) mustaqil ravishda o'zi ishga tushadi, chunki u ham sizning tushish tezligingizni kuzatib turadi.
+ * Harakatni haqiqiy klaviatura tugmalarini (forward/back/sneak/jump) bosib turish orqali boshqaramiz - xuddi odam
+ * o'zi bosgandek (uz.autotravel'dagi kabi usul).
  */
 public class BridgeController {
     private enum State { IDLE, RUNNING, SAFE_STOP }
@@ -37,6 +41,10 @@ public class BridgeController {
 
     private State state = State.IDLE;
     private Direction dir = Direction.NORTH;
+    /** Diagonal rejimda ikki tomon almashlab ishlatiladi (zigzag); secondary == null bo'lsa oddiy kardinal. */
+    private Direction primary = Direction.NORTH;
+    private Direction secondary = null;
+    private BlockPos lastFeet = null;
     private int blocksPlaced = 0;
     private int jumpEvery = 6;
     private boolean jumpPending = false;
@@ -66,7 +74,7 @@ public class BridgeController {
             return;
         }
 
-        if (cfg.enabled && state == State.IDLE) start(p);
+        if (cfg.enabled && state == State.IDLE) start(p, cfg);
         if (!cfg.enabled && state == State.RUNNING) requestStop(c, p);
 
         switch (state) {
@@ -77,21 +85,25 @@ public class BridgeController {
     }
 
     // ------------------------------------------------------------ boshlash / to'xtash
-    private void start(ClientPlayerEntity p) {
-        dir = lockedDirection(p);
+    private void start(ClientPlayerEntity p, BridgeConfig cfg) {
+        Direction[] locked = lockedDirections(p, cfg.diagonal);
+        primary = locked[0];
+        secondary = locked.length > 1 ? locked[1] : null;
+        dir = primary;
+        lastFeet = p.getBlockPos();
         state = State.RUNNING;
         blocksPlaced = 0;
         jumpPending = false;
         sneakReleaseTicks = 0;
         witchPauseTicks = 0;
         lastWarn = null;
-        BridgeStyle st = style(BridgeConfig.get());
+        BridgeStyle st = style(cfg);
         jumpEvery = switch (st) {
             case SPEED, JUMP -> 1;
             case DOUBLE_GOD -> 2;
             default -> 6;
         };
-        status = "§6" + st.title + " boshlandi";
+        status = "§6" + st.title + (secondary != null ? " (diagonal)" : "") + " boshlandi";
     }
 
     /** O'chirilganda: yerda bo'lsangiz darhol, havoda bo'lsangiz xavfsiz to'xtashga o'tadi. */
@@ -108,17 +120,29 @@ public class BridgeController {
     }
 
     private void finishAtWall(MinecraftClient c, ClientPlayerEntity p) {
+        stopAndDisable(c, p, "§aAuto Bridge: devorga yetdi - to'xtadi.", "§7devor - tugadi");
+    }
+
+    /** Modulni o'chirib, darhol (yerda ekanligimiz uchun xavfsiz) to'xtatadi va sababini aytadi. */
+    private void stopAndDisable(MinecraftClient c, ClientPlayerEntity p, String chatMsg, String statusMsg) {
         BridgeConfig cfg = BridgeConfig.get();
         cfg.enabled = false;
         BridgeConfig.save();
-        if (cfg.messages) p.sendMessage(Text.literal("§aAuto Bridge: devorga yetdi - to'xtadi."), true);
+        if (cfg.messages) p.sendMessage(Text.literal(chatMsg), true);
         state = State.IDLE;
         release(c);
-        status = "§7devor - tugadi";
+        status = statusMsg;
     }
 
     // ------------------------------------------------------------ asosiy tsikl
     private void tickRunning(MinecraftClient c, ClientPlayerEntity p, BridgeConfig cfg) {
+        BlockPos feet = p.getBlockPos();
+        if (!feet.equals(lastFeet)) {
+            // diagonal: har safar bir blokka qadam bosilganda ikki tomon orasida almashamiz (zigzag)
+            if (secondary != null) dir = dir == primary ? secondary : primary;
+            lastFeet = feet;
+        }
+
         BridgeStyle st = style(cfg);
         if (st == BridgeStyle.JUMP) {
             tickJump(c, p, cfg);
@@ -126,14 +150,13 @@ public class BridgeController {
         }
 
         ClientWorld w = c.world;
-        BlockPos feet = p.getBlockPos();
         BlockPos support = feet.down();
         BlockPos nextFoot = feet.offset(dir);
         BlockPos nextSupport = nextFoot.down();
 
-        drive(c, p, st);
-
         if (!solid(w, support)) {
+            // sakrashning tabiiy qismi (GOD/Speed/Double God) - shunchaki kutamiz, hech narsa qilmaymiz
+            drive(c, p, st);
             status = "§7havoda...";
             return;
         }
@@ -141,12 +164,34 @@ public class BridgeController {
             finishAtWall(c, p);
             return;
         }
-        if (solid(w, nextSupport)) {
+
+        boolean gapAhead = !solid(w, nextSupport);
+        // oldinga qadam bosishdan OLDIN tekshiramiz - aks holda qo'yib bo'lmaydigan joyga yurib, yiqilib ketamiz
+        if (gapAhead && cfg.stopAtLiquid && !w.getFluidState(nextSupport).isEmpty()) {
+            stopAndDisable(c, p, "§eAuto Bridge: oldinda suv/lava bor - to'xtadi.", "§7suv/lava - tugadi");
+            return;
+        }
+        if (gapAhead && blockSlot(p, cfg) < 0) {
+            stopAndDisable(c, p, "§cAuto Bridge: qurilish bloki tugadi - to'xtadi.", "§cblok tugadi");
+            return;
+        }
+        if (cfg.maxBlocks > 0 && blocksPlaced >= cfg.maxBlocks) {
+            stopAndDisable(c, p, "§7Auto Bridge: blok chegarasiga yetdi - to'xtadi.", "§7limit - tugadi");
+            return;
+        }
+        if (cfg.pauseOnEnemy && enemyNearby(w, p, cfg)) {
+            release(c);
+            status = "§cdushman ko'rindi - pauza";
+            return;
+        }
+
+        drive(c, p, st);
+
+        if (!gapAhead) {
             status = "§atayyor";
             lastWarn = null;
             return;
         }
-
         styleBehavior(c, p, cfg, st, support);
     }
 
@@ -155,6 +200,26 @@ public class BridgeController {
         BlockPos nextFoot = p.getBlockPos().offset(dir);
         if (blocked(w, nextFoot)) {
             finishAtWall(c, p);
+            return;
+        }
+        // JUMP uslubi doim sakraydi - tagida blok yo'qligi normal holat, lekin blok butunlay tugasa to'xtashimiz kerak
+        BlockPos below = p.getBlockPos().down();
+        boolean needsBlock = !solid(w, below);
+        if (needsBlock && cfg.stopAtLiquid && !w.getFluidState(below).isEmpty()) {
+            stopAndDisable(c, p, "§eAuto Bridge: oldinda suv/lava bor - to'xtadi.", "§7suv/lava - tugadi");
+            return;
+        }
+        if (needsBlock && blockSlot(p, cfg) < 0) {
+            stopAndDisable(c, p, "§cAuto Bridge: qurilish bloki tugadi - to'xtadi.", "§cblok tugadi");
+            return;
+        }
+        if (cfg.maxBlocks > 0 && blocksPlaced >= cfg.maxBlocks) {
+            stopAndDisable(c, p, "§7Auto Bridge: blok chegarasiga yetdi - to'xtadi.", "§7limit - tugadi");
+            return;
+        }
+        if (cfg.pauseOnEnemy && enemyNearby(w, p, cfg)) {
+            release(c);
+            status = "§cdushman ko'rindi - pauza";
             return;
         }
         GameOptions o = c.options;
@@ -254,7 +319,7 @@ public class BridgeController {
         if (placeBelowSelf(c, p, cfg)) {
             status = "§axavfsiz to'xtadi";
         } else if (!solid(c.world, p.getBlockPos().down())) {
-            warnOnce(p, "§cAuto Bridge: tagida blok yo'q - ehtiyot bo'ling, yiqilyapsiz!");
+            warnOnce(p, "§cAuto Bridge: tagida blok yo'q - ehtiyot bo'ling, yiqilyapsiz! (Auto Clutch yoqilgan bo'lsa o'zi harakat qiladi)");
             status = "§cblok yo'q!";
         }
         if (++safeStopTicks > 100) {
@@ -276,6 +341,21 @@ public class BridgeController {
                 return place(c, p, against, d.getOpposite(), cfg, true);
             }
         }
+        return false;
+    }
+
+    // ------------------------------------------------------------ dushman
+    private static boolean enemyNearby(ClientWorld w, ClientPlayerEntity p, BridgeConfig cfg) {
+        for (PlayerEntity t : w.getPlayers()) {
+            if (t == p || t.isSpectator() || t.isCreative() || isFriend(t)) continue;
+            if (t.distanceTo(p) <= cfg.enemyRange) return true;
+        }
+        return false;
+    }
+
+    private static boolean isFriend(PlayerEntity t) {
+        String name = t.getName().getString();
+        for (String f : AutoTntConfig.get().friends) if (f.equalsIgnoreCase(name)) return true;
         return false;
     }
 
@@ -323,25 +403,47 @@ public class BridgeController {
         return true;
     }
 
-    /** Qurilish uchun blok: avval arzon bloklar, keyin har qanday to'liq oddiy blok (qimmatbaholarisiz). */
+    /** Arzon (ustuvor) qurilish bloki: cobblestone va shunga o'xshash to'liq, oddiy bloklar. */
+    private static boolean cheapBlock(ItemStack s) {
+        if (!(s.getItem() instanceof BlockItem)) return false;
+        String id = Registries.ITEM.getId(s.getItem()).getPath();
+        return id.matches("cobblestone|cobbled_deepslate|dirt|netherrack|stone|andesite|diorite|granite|tuff"
+                + "|blackstone|end_stone|deepslate|.*_planks");
+    }
+
+    /** Ko'prik uchun yaroqli har qanday to'liq blok (qimmatbaho/maxsus bloklarsiz). */
+    private static boolean buildableBlock(ItemStack s) {
+        if (cheapBlock(s)) return true;
+        if (!(s.getItem() instanceof BlockItem bi)) return false;
+        String id = Registries.ITEM.getId(s.getItem()).getPath();
+        Block b = bi.getBlock();
+        if (b instanceof BlockWithEntity || b instanceof FallingBlock) return false;
+        if (id.matches(".*(diamond|emerald|netherite|gold|iron|obsidian|tnt|ancient|beacon|lapis|redstone"
+                + "|copper|amethyst|anchor|shulker|spawner).*")) return false;
+        return b.getDefaultState().isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN);
+    }
+
+    /** Qurilish uchun blok: hotbar (0-8) avval, keyin (ruxsat bo'lsa) inventar; arzon bloklar ustuvor. */
     private static int blockSlot(ClientPlayerEntity p, BridgeConfig cfg) {
         int limit = cfg.fromInventory ? 36 : 9;
         int any = -1;
         for (int i = 0; i < limit; i++) {
             ItemStack s = p.getInventory().getStack(i);
-            if (!(s.getItem() instanceof BlockItem bi)) continue;
-            String id = Registries.ITEM.getId(s.getItem()).getPath();
-            if (id.matches("cobblestone|cobbled_deepslate|dirt|netherrack|stone|andesite|diorite|granite|tuff"
-                    + "|blackstone|end_stone|deepslate|.*_planks")) return i;
-            if (any >= 0) continue;
-            Block b = bi.getBlock();
-            if (b instanceof BlockWithEntity || b instanceof FallingBlock) continue;
-            if (id.matches(".*(diamond|emerald|netherite|gold|iron|obsidian|tnt|ancient|beacon|lapis|redstone"
-                    + "|copper|amethyst|anchor|shulker|spawner).*")) continue;
-            if (!b.getDefaultState().isFullCube(EmptyBlockView.INSTANCE, BlockPos.ORIGIN)) continue;
-            any = i;
+            if (cheapBlock(s)) return i;
+            if (any < 0 && buildableBlock(s)) any = i;
         }
         return any;
+    }
+
+    /** Hozir sizda jami nechta qurilish bloki bor (HUD uchun). */
+    private static int countBlocks(ClientPlayerEntity p, BridgeConfig cfg) {
+        int limit = cfg.fromInventory ? 36 : 9;
+        int total = 0;
+        for (int i = 0; i < limit; i++) {
+            ItemStack s = p.getInventory().getStack(i);
+            if (buildableBlock(s)) total += s.getCount();
+        }
+        return total;
     }
 
     // ------------------------------------------------------------ yo'nalish va holat
@@ -349,11 +451,21 @@ public class BridgeController {
         return BridgeStyle.of(cfg.style);
     }
 
-    /** Hozirgi qarashga (yaw) eng yaqin gorizontal tomon - shu tomonga devorga yetguncha boradi. */
-    private static Direction lockedDirection(ClientPlayerEntity p) {
+    /**
+     * Hozirgi qarashga (yaw) eng yaqin tomon(lar). Diagonal yoqilgan va qarash 45°ga yetarlicha yaqin bo'lsa ikki
+     * kardinal tomon qaytariladi (zigzag uchun) - aks holda bitta tomon (eski xatti-harakat, o'zgarmagan).
+     */
+    private static Direction[] lockedDirections(ClientPlayerEntity p, boolean allowDiagonal) {
         double rad = Math.toRadians(p.getYaw());
         double dx = -Math.sin(rad), dz = Math.cos(rad);
-        return Direction.getFacing(dx, 0, dz);
+        Direction primary = Math.abs(dx) >= Math.abs(dz) ? (dx > 0 ? Direction.EAST : Direction.WEST)
+                : (dz > 0 ? Direction.SOUTH : Direction.NORTH);
+        if (!allowDiagonal) return new Direction[] { primary };
+        Direction secondary = Math.abs(dx) >= Math.abs(dz) ? (dz > 0 ? Direction.SOUTH : Direction.NORTH)
+                : (dx > 0 ? Direction.EAST : Direction.WEST);
+        double a = Math.abs(dx), b = Math.abs(dz);
+        double ratio = Math.min(a, b) / Math.max(a, b);
+        return ratio > 0.5 ? new Direction[] { primary, secondary } : new Direction[] { primary };
     }
 
     private static boolean solid(ClientWorld w, BlockPos pos) {
@@ -388,6 +500,8 @@ public class BridgeController {
     public String hudLine(MinecraftClient c) {
         BridgeConfig cfg = BridgeConfig.get();
         if (!cfg.hud || (!cfg.enabled && state == State.IDLE)) return null;
-        return status == null ? null : "§6Auto Bridge: " + status;
+        if (status == null) return null;
+        int blocks = c.player == null ? -1 : countBlocks(c.player, cfg);
+        return "§6Auto Bridge: " + status + (blocks < 0 ? "" : " §7| §f" + blocks + " blok");
     }
 }

@@ -20,8 +20,9 @@ public class CobwebConfig {
     public int approachDist = 5;
     /** Dushman qayerda bo'lishini necha tick oldinga hisoblash. */
     public int lookahead = 3;
-    /** Oyoq bilan birga bosh balandligiga ham (ikki qavat). */
-    public boolean doubleWeb = false;
+    /** Oyoq bilan birga bosh balandligiga ham (ikki qavat) qo'yish ehtimoli (foiz). Har doim qo'ysa shubhali
+     * ko'rinadi, shuning uchun doim emas - tasodifiy. */
+    public int doubleWebChance = 35;
 
     /** Ustingizdan (mace bilan) tushayotgan dushman bo'lsa boshingiz ustiga. */
     public boolean antiMace = true;
