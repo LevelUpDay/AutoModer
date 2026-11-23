@@ -31,6 +31,7 @@
       "uz.pearlboost.PearlBoostClient",
       "uz.automace.AutoMaceClient",
       "uz.autotravel.AutoTravelClient",
+      "uz.automine.AutoMineClient",
       "uz.crystalhud.CrystalHudClient",
       "uz.playerchase.PlayerChaseClient"
     ]

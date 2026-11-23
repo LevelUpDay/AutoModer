@@ -48,6 +48,8 @@
   "key.automace.toggle": "Auto Mace yoqish/o'chirish",
   "key.category.autotravel.main": "Auto Travel",
   "key.autotravel.toggle": "Auto Travel yoqish/o'chirish",
+  "key.category.automine.main": "Auto Mine",
+  "key.automine.toggle": "Auto Mine yoqish/o'chirish",
   "key.category.crystalhud.main": "Crystal HUD",
   "key.crystalhud.toggle": "Crystal HUD yoqish/o'chirish"
 }

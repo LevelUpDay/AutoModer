@@ -12,6 +12,8 @@ import uz.autocobweb.CobwebConfig;
 import uz.autoelytra.AutoElytraClient;
 import uz.automace.AutoMaceClient;
 import uz.automace.MaceConfig;
+import uz.automine.AutoMineClient;
+import uz.automine.AutoMineConfig;
 import uz.autotravel.AutoTravelClient;
 import uz.autotravel.TravelConfig;
 import uz.autopotion.AutoPotionClient;
@@ -157,6 +159,7 @@ public final class Modules {
         PvpConfig.save();
         PearlBoostConfig.save();
         MaceConfig.save();
+        AutoMineConfig.save();
         TravelConfig.save();
         CrystalHudConfig.save();
         NoRenderConfig.save();
@@ -368,6 +371,43 @@ public final class Modules {
                     group("Boshqa"),
                     bool("Xabarlar", "Har zarbada action bar xabari", () -> c.messages, v -> c.messages = v),
                     bool("HUD", "Tushish balandligi va oxirgi zarba", () -> c.hud, v -> c.hud = v));
+        }));
+
+        l.add(new Module("Auto Mine", "Belgilangan hudud ichida tanlangan rudalarni qazib, hech qachon tashqariga "
+                + "chiqmaydi - inventar to'lsa sotish buyrug'ini yuboradi, keraksiz bloklarni tashlaydi",
+                Module.Category.WORLD, () -> AutoMineConfig.get().enabled, v -> AutoMineConfig.get().enabled = v, () -> {
+            AutoMineConfig c = AutoMineConfig.get();
+            return List.of(
+                    key(Setting.TOGGLE_KEY, "Bosing va harf tanlang - modulni yoqib-o'chiradi (yoki /mine start)",
+                            AutoMineClient.keyToggle),
+                    group("Hudud"),
+                    num("Radius", "Markazdan necha blok (kub)", 2, 64, () -> c.radius, v -> c.radius = v,
+                            v -> v + " blok"),
+                    action("Markazni shu yerga qo'y", "Hozirgi joyingizni markaz qilib, yuqoridagi radius bilan "
+                            + "hududni belgilaydi (/mine area bilan ham bo'ladi)",
+                            () -> AutoMineClient.CONTROLLER.setArea(c.radius)),
+                    group("Rudalar"),
+                    items("Rudalar", "Qazib olinadigan bloklar (/mine start bilan ham o'rnatiladi)", c.ores),
+                    choice("Ruda tugasa", "Hudud ichida joriy ruda qolmasa", new String[] {"Kutish", "Keyingisiga o'tish"},
+                            () -> Math.floorMod(c.onDepleted, 2), v -> c.onDepleted = v),
+                    group("Asbob va sotish"),
+                    choice("Ketmon sinishi", "Tanlangan asbob sinishiga oz qolsa",
+                            new String[] {"To'xtash", "Avtomatik almashtirish"},
+                            () -> Math.floorMod(c.toolBreakMode, 2), v -> c.toolBreakMode = v),
+                    num("Sotish chegarasi", "Inventar (36 slot) shuncha slot to'lganda sotadi", 1, 36,
+                            () -> c.sellFullSlots, v -> c.sellFullSlots = v, v -> v + " slot"),
+                    action("Sotish buyrug'i: /" + c.sellCommand + " (bosing - o'zgartirish)",
+                            "Chat oynasini oldindan to'ldirib ochadi - matnni tahrirlab Enter bosing",
+                            () -> net.minecraft.client.MinecraftClient.getInstance().setScreen(
+                                    new net.minecraft.client.gui.screen.ChatScreen("/mine sell " + c.sellCommand))),
+                    group("Keraksiz bloklar"),
+                    bool("Yerga tashlash", "Qazib olingan keraksiz bloklarni (ruda bo'lmasa) avtomatik tashlaydi",
+                            () -> c.dropJunk, v -> c.dropJunk = v),
+                    items("Keraksiz bloklar", "Shu bloklar (ruda ro'yxatidagilar hech qachon tashlanmaydi)", c.junk),
+                    group("Boshqa"),
+                    bool("Xabarlar", "Sotish/to'xtash haqida action bar xabarlari", () -> c.messages,
+                            v -> c.messages = v),
+                    bool("HUD", "Ekranda joriy holat", () -> c.hud, v -> c.hud = v));
         }));
 
         l.add(new Module("Pearl Boost", "H: pearl + uni urib yuboradigan wind charge - havoga teleport, keyin mace; Pearl Chase",
