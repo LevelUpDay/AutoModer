@@ -27,8 +27,6 @@ import uz.bowaim.BowAimClient;
 import uz.bowaim.BowAimConfig;
 import uz.crystalhud.CrystalHudClient;
 import uz.crystalhud.CrystalHudConfig;
-import uz.elytrapvp.ElytraPvpClient;
-import uz.elytrapvp.ElytraPvpConfig;
 import uz.fallcombo.FallComboClient;
 import uz.fallcombo.FallComboConfig;
 import uz.fastplace.FastPlaceClient;
@@ -160,7 +158,6 @@ public final class Modules {
         PearlBoostConfig.save();
         MaceConfig.save();
         TravelConfig.save();
-        ElytraPvpConfig.save();
         CrystalHudConfig.save();
         NoRenderConfig.save();
         PearlTrackerConfig.save();
@@ -217,7 +214,9 @@ public final class Modules {
                             () -> c.targetTimeoutTicks, v -> c.targetTimeoutTicks = v, v -> v + " tick"));
         }));
 
-        l.add(new Module("Auto PvP", "K bilan yoqing: eng yaqin dushman bilan o'zi jang qiladi (lunge, qilich, mace, wind charge, pearl)",
+        l.add(new Module("Auto PvP", "K bilan yoqing: eng yaqin dushman bilan to'liq avtomatik jang - hotbar/inventarda "
+                + "nima bo'lsa shuni ishlatadi (qilich/bolta/mace/nayza, pearl/wind charge/elytra), kerak bo'lsa o'zi "
+                + "ovqat yeydi va totem tanlaydi",
                 Module.Category.COMBAT, () -> PvpConfig.get().enabled, v -> PvpConfig.get().enabled = v, () -> {
             PvpConfig c = PvpConfig.get();
             return List.of(
@@ -225,59 +224,48 @@ public final class Modules {
                             AutoPvpClient.keyToggle),
                     num("Nishon masofasi", "Eng yaqin dushmanni shu masofada qidiradi", 8, 64, () -> c.range,
                             v -> c.range = v, v -> v + " blok"),
-                    group("Yaqinlashish"),
-                    bool("Lunge", "Uzoqda Lunge nayza bilan uchib boradi (cooldown to'lishi bilan)", () -> c.lunge,
-                            v -> c.lunge = v),
-                    bool("Gorizontal lunge", "Uzoqda pitch 0 - impuls to'liq oldinga", () -> c.flatten,
-                            v -> c.flatten = v),
-                    bool("Wind charge sakrash", "Yerda bo'lsangiz wind charge bilan sakraydi", () -> c.windJump,
-                            v -> c.windJump = v),
-                    num("Wind charge masofasi", "Shundan uzoqda sakraydi", 2, 20, () -> c.windMinDist,
-                            v -> c.windMinDist = v, v -> v + " blok"),
-                    bool("Ender pearl", "Juda uzoq bo'lsa nishon oldiga pearl (harakatni hisoblab)", () -> c.pearl,
-                            v -> c.pearl = v),
-                    num("Pearl masofasi", "Shundan uzoqda pearl", 8, 60, () -> c.pearlDist, v -> c.pearlDist = v,
-                            v -> v + " blok"),
-                    num("Min ochlik", "Lunge ochlik yeydi: shundan kam bo'lsa lunge qilmaydi", 0, 20, () -> c.minFood,
-                            v -> c.minFood = v),
-                    group("Urish"),
+                    group("Yaqin jang"),
                     bool("Yaqinda urish", "Yaqin kelganda uradi", () -> c.melee, v -> c.melee = v),
-                    bool("Nayza bilan urish", "Yaqinda ham nayza jab'i (OFF - qilich, bo'lmasa bolta)",
+                    num("Urish masofasi", "Shu masofada uradi", 20, 45, () -> c.reachTenths,
+                            v -> c.reachTenths = v, v -> (v / 10.0) + " blok"),
+                    bool("Nayza bilan urish", "Yaqinda ham nayza jab'i (bo'lmasa qilich, bo'lmasa bolta/mace)",
                             () -> c.spearMelee, v -> c.spearMelee = v),
-                    num("Urish masofasi", "Qilich bilan urish masofasi", 20, 45, () -> c.meleeTenths,
-                            v -> c.meleeTenths = v, v -> (v / 10.0) + " blok"),
                     bool("Qalqonni sindirish", "Nishon qalqon ushlasa bolta bilan o'chiradi", () -> c.axeShield,
                             v -> c.axeShield = v),
+                    bool("Stun slam", "Tushib-urishda qalqon bo'lsa bolta + mace bir tickda", () -> c.stunSlam,
+                            v -> c.stunSlam = v),
                     bool("Mace", "Tushayotganda mace: zirhli nishonga Breach, aks holda Density", () -> c.mace,
                             v -> c.mace = v),
                     num("Mace balandligi", "Kamida shuncha tushganda", 1, 20, () -> c.maceMinFall,
                             v -> c.maceMinFall = v, v -> v + " blok"),
-                    bool("Mace combo", "Yaqinda yerda bo'lsangiz wind charge bilan sakrab, tushishda mace bilan uradi",
-                            () -> c.maceCombo, v -> c.maceCombo = v),
-                    num("Combo masofasi", "Shu masofada sakraydi", 2, 10, () -> c.maceComboDist,
-                            v -> c.maceComboDist = v, v -> v + " blok"),
-                    group("Nishon"),
-                    bool("O'yinchilar", "O'yinchilarga", () -> c.players, v -> c.players = v),
-                    bool("Moblar", "Dushman moblarga ham", () -> c.mobs, v -> c.mobs = v),
-                    bool("Do'stlarga emas", "/tntfriend ro'yxatidagilar", () -> c.ignoreFriends,
-                            v -> c.ignoreFriends = v),
-                    bool("HUD", "Ekranda nishon va holat", () -> c.hud, v -> c.hud = v));
-        }));
-
-        l.add(new Module("Elytra PvP", "Elytra kiyib firework/wind charge bilan uchib boradi, yechib mace bilan uradi, takrorlaydi",
-                Module.Category.COMBAT, () -> ElytraPvpConfig.get().enabled, v -> ElytraPvpConfig.get().enabled = v, () -> {
-            ElytraPvpConfig c = ElytraPvpConfig.get();
-            return List.of(
-                    key(Setting.TOGGLE_KEY, "Bosing va harf tanlang - modulni yoqib-o'chiradi", ElytraPvpClient.keyToggle),
-                    num("Nishon masofasi", "Shu masofadagi eng yaqin o'yinchi", 8, 128, () -> c.range, v -> c.range = v,
+                    num("Min ochlik", "Nayza (jab/lunge) ochlik yeydi: shundan kam bo'lsa qilmaydi", 0, 20,
+                            () -> c.minFood, v -> c.minFood = v),
+                    group("Yaqinlashish (uzoqda)"),
+                    bool("Lunge", "Boshqa variant mos kelmasa: nayza bilan uchib yaqinlashadi", () -> c.lunge,
+                            v -> c.lunge = v),
+                    bool("Gorizontal lunge", "Uzoqda pitch 0 - impuls to'liq oldinga", () -> c.flatten,
+                            v -> c.flatten = v),
+                    bool("Ender pearl", "Juda uzoq bo'lsa nishon oldiga pearl (harakatni hisoblab)", () -> c.pearl,
+                            v -> c.pearl = v),
+                    num("Pearl masofasi", "Shundan uzoqda pearl", 8, 60, () -> c.pearlDist, v -> c.pearlDist = v,
                             v -> v + " blok"),
-                    group("Elytra hujum"),
-                    bool("Elytra bilan", "Uzoqda elytra kiyib uchib boradi, ustidan mace bilan tushadi", () -> c.elytra,
-                            v -> c.elytra = v),
-                    num("Uchish masofasi", "Nishon shundan uzoq bo'lsa uchadi", 6, 64, () -> c.flyDist, v -> c.flyDist = v,
-                            v -> v + " blok"),
-                    num("Hujum balandligi", "Nishondan shuncha baland uchib, keyin sho'ng'iydi", 6, 50, () -> c.attackHeight,
-                            v -> c.attackHeight = v, v -> v + " blok"),
+                    bool("Wind charge sakrash", "Yaqin-o'rta masofada wind charge bilan sakrab, tushishda mace",
+                            () -> c.windJump, v -> c.windJump = v),
+                    num("Wind charge masofasi", "Shu masofagacha sakraydi", 2, 10, () -> c.windJumpDist,
+                            v -> c.windJumpDist = v, v -> v + " blok"),
+                    bool("Pearl bilan tepaga", "O'rtacha masofada: pearl + wind charge (Pearl Boost) - teleport, keyin mace",
+                            () -> c.pearlUp, v -> c.pearlUp = v),
+                    num("Pearl Boost masofasi", "Shundan yaqin bo'lsa shu bilan", 6, 30, () -> c.pearlUpDist,
+                            v -> c.pearlUpDist = v, v -> v + " blok"),
+                    bool("O'zi yurish", "Siz boshqa tomonga yurmasangiz nishonga yaqinlashadi", () -> c.walk,
+                            v -> c.walk = v),
+                    group("Elytra"),
+                    bool("Elytra bilan", "Elytra bor va foydali bo'lsa: uchib borib, ustidan mace bilan tushadi",
+                            () -> c.elytra, v -> c.elytra = v),
+                    num("Uchish masofasi", "Nishon shundan uzoq bo'lsa uchadi", 6, 64, () -> c.flyDist,
+                            v -> c.flyDist = v, v -> v + " blok"),
+                    num("Hujum balandligi", "Nishondan shuncha baland uchib, keyin sho'ng'iydi", 6, 50,
+                            () -> c.attackHeight, v -> c.attackHeight = v, v -> v + " blok"),
                     num("Yechish vaqti", "Yetib borishga shuncha tick qolganda yechadi (tez bo'lsa oldinroq)", 1, 10,
                             () -> c.unequipLead, v -> c.unequipLead = v, v -> v + " tick"),
                     num("Firework oralig'i", "Firework'lar orasida eng kami", 5, 60, () -> c.fireworkDelay,
@@ -288,32 +276,24 @@ public final class Modules {
                             () -> c.windTakeoff, v -> c.windTakeoff = v),
                     bool("Yerda nagrudnik", "Yerda elytra kiyib qolsa nagrudnikni kiyadi", () -> c.armorOnGround,
                             v -> c.armorOnGround = v),
-                    group("Yaqin jang"),
-                    bool("Wind sakrash", "Yaqinda oyoq ostiga wind charge - sakrab mace bilan", () -> c.windJump,
-                            v -> c.windJump = v),
-                    num("Wind masofasi", "Shu masofada sakraydi", 2, 8, () -> c.windJumpDist, v -> c.windJumpDist = v,
-                            v -> v + " blok"),
-                    bool("Pearl bilan tepaga", "Pearl + wind charge (Pearl Boost) - tepaga teleport, keyin mace",
-                            () -> c.pearlUp, v -> c.pearlUp = v),
-                    num("Pearl masofasi", "Shundan yaqin bo'lsa pearl bilan", 6, 30, () -> c.pearlUpDist,
-                            v -> c.pearlUpDist = v, v -> v + " blok"),
-                    bool("Stun slam", "Qalqon ushlasa bolta + mace bir tickda", () -> c.stunSlam, v -> c.stunSlam = v),
-                    bool("O'zi yurish", "Siz yurmasangiz nishonga yuradi (siz yursangiz sizniki ustun)", () -> c.walk,
-                            v -> c.walk = v),
-                    num("Masofa", "Urish masofasi", 20, 45, () -> c.reachTenths, v -> c.reachTenths = v,
-                            v -> (v / 10.0) + " blok"),
                     group("Omon qolish"),
-                    num("Ovqat joni", "Jon shundan kam bo'lsa ovqat (avval oltin olma) yeydi", 2, 18, () -> c.eatHealth,
-                            v -> c.eatHealth = v, v -> (v / 2.0) + " yurak"),
+                    num("Ovqat joni", "Jon shundan kam/teng bo'lsa ovqat (avval oltin olma) yeydi", 2, 18,
+                            () -> c.eatHealth, v -> c.eatHealth = v, v -> (v / 2.0) + " yurak"),
                     bool("Qochish pearl'i", "Ovqatdan oldin nishondan uzoqqa pearl otadi", () -> c.retreatPearl,
                             v -> c.retreatPearl = v),
-                    num("Qochish masofasi", "Pearl shuncha uzoqqa", 6, 30, () -> c.retreatDist, v -> c.retreatDist = v,
-                            v -> v + " blok"),
-                    group("Boshqa"),
+                    num("Qochish masofasi", "Pearl shuncha uzoqqa", 6, 30, () -> c.retreatDist,
+                            v -> c.retreatDist = v, v -> v + " blok"),
+                    bool("Totem", "Jon+absorption kam qolsa totemni o'zi chap qo'lga oladi", () -> c.totem,
+                            v -> c.totem = v),
+                    num("Totem joni", "Shundan kam/teng bo'lsa totem oladi", 0, 20, () -> c.totemHealth,
+                            v -> c.totemHealth = v, v -> v == 0 ? "o'chiq" : (v / 2.0) + " yurak"),
+                    group("Nishon"),
+                    bool("O'yinchilar", "O'yinchilarga", () -> c.players, v -> c.players = v),
+                    bool("Moblar", "Dushman moblarga ham", () -> c.mobs, v -> c.mobs = v),
                     bool("Do'stlarga emas", "/tntfriend ro'yxatidagilar", () -> c.ignoreFriends,
                             v -> c.ignoreFriends = v),
-                    bool("Xabarlar", "Action bar xabarlari", () -> c.messages, v -> c.messages = v),
-                    bool("HUD", "Nishon, holat va oxirgi zarba", () -> c.hud, v -> c.hud = v));
+                    bool("Xabarlar", "Action bar xabarlari (nishon, qochish)", () -> c.messages, v -> c.messages = v),
+                    bool("HUD", "Ekranda nishon va holat", () -> c.hud, v -> c.hud = v));
         }));
 
         l.add(new Module("Player Chase", "Tugma: eng yaqin (yoki pritseldagi) o'yinchiga elytra bilan tez uchib boradi, "

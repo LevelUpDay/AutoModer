@@ -32,7 +32,6 @@
       "uz.automace.AutoMaceClient",
       "uz.autotravel.AutoTravelClient",
       "uz.crystalhud.CrystalHudClient",
-      "uz.elytrapvp.ElytraPvpClient",
       "uz.playerchase.PlayerChaseClient"
     ]
   },
