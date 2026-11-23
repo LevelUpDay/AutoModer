@@ -9,6 +9,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
+import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -26,7 +27,7 @@ import java.util.List;
 public class MineController {
     private BlockPos target = null;
     private int oreIndex = 0;
-    private int sellCooldown = 0, rescanCooldown = 0;
+    private int sellCooldown = 0, rescanCooldown = 0, healCooldown = 0;
     private String status = null, lastWarn = null;
 
     public void tick(MinecraftClient c) {
@@ -55,7 +56,20 @@ public class MineController {
         release(c);
         if (sellCooldown > 0) sellCooldown--;
         if (rescanCooldown > 0) rescanCooldown--;
+        if (healCooldown > 0) healCooldown--;
         ClientWorld w = c.world;
+
+        // ---- 0. jon kam - hammasidan ustun - XP shisha bilan davolanish
+        if (cfg.autoHeal && healCooldown == 0 && p.getHealth() <= cfg.healHealth) {
+            int bottle = findSlot(p, "minecraft:experience_bottle");
+            if (bottle >= 0) {
+                useBottle(c, p, bottle);
+                healCooldown = 5;
+                status = "davolanmoqda (xp)";
+                return;
+            }
+            warnOnce(p, cfg, "§cAuto Mine: jon kam, lekin Experience Bottle qolmadi!");
+        }
 
         // ---- 1. inventar to'lgan - sotish
         if (sellCooldown == 0 && fullSlots(p) >= cfg.sellFullSlots) {
@@ -246,6 +260,32 @@ public class MineController {
         return n;
     }
 
+    /** Shu id'dagi (masalan "minecraft:experience_bottle") birinchi slot (hotbar avval). */
+    private static int findSlot(ClientPlayerEntity p, String id) {
+        for (int i = 0; i < 36; i++) {
+            ItemStack s = p.getInventory().getStack(i);
+            if (!s.isEmpty() && Registries.ITEM.getId(s.getItem()).toString().equals(id)) return i;
+        }
+        return -1;
+    }
+
+    /** Slotni (kerak bo'lsa hotbar'ga olib kelib) tanlab bir marta ishlatadi (o'ng tugma - serverda davolaydi). */
+    private static void useBottle(MinecraftClient c, ClientPlayerEntity p, int slot) {
+        int original = p.getInventory().getSelectedSlot();
+        int hb = slot;
+        int[] borrowed = null;
+        if (slot >= 9) {
+            hb = original < 9 ? original : 8;
+            InvHelper.swap(c, p, slot, hb);
+            borrowed = new int[] { slot, hb };
+        }
+        InvHelper.select(p, hb);
+        c.interactionManager.interactItem(p, Hand.MAIN_HAND);
+        p.swingHand(Hand.MAIN_HAND);
+        InvHelper.select(p, original);
+        if (borrowed != null && InvHelper.returnItems()) InvHelper.swap(c, p, borrowed[0], borrowed[1]);
+    }
+
     /** Ro'yxatdagi (keraksiz), lekin nishon-ruda ro'yxatida bo'lmagan birinchi slot. */
     private static int findJunkSlot(ClientPlayerEntity p, AutoMineConfig cfg) {
         for (int i = 0; i < 36; i++) {
@@ -267,7 +307,7 @@ public class MineController {
         }
         InvHelper.select(p, hb);
         p.dropSelectedItem(true);
-        if (slot >= 9) InvHelper.swap(c, p, slot, hb);
+        if (slot >= 9 && InvHelper.returnItems()) InvHelper.swap(c, p, slot, hb);
         InvHelper.select(p, original);
     }
 

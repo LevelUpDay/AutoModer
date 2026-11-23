@@ -404,6 +404,11 @@ public final class Modules {
                     bool("Yerga tashlash", "Qazib olingan keraksiz bloklarni (ruda bo'lmasa) avtomatik tashlaydi",
                             () -> c.dropJunk, v -> c.dropJunk = v),
                     items("Keraksiz bloklar", "Shu bloklar (ruda ro'yxatidagilar hech qachon tashlanmaydi)", c.junk),
+                    group("Omon qolish"),
+                    bool("XP bilan davolanish", "Jon kam qolsa - hammasidan ustun - Experience Bottle ishlatadi "
+                            + "(serverning o'z mexanikasi davolasa)", () -> c.autoHeal, v -> c.autoHeal = v),
+                    num("Davolanish joni", "Jon shundan kam/teng bo'lsa XP shisha ishlatadi", 1, 19,
+                            () -> c.healHealth, v -> c.healHealth = v, v -> (v / 2.0) + " yurak"),
                     group("Boshqa"),
                     bool("Xabarlar", "Sotish/to'xtash haqida action bar xabarlari", () -> c.messages,
                             v -> c.messages = v),

@@ -33,6 +33,11 @@ public class AutoMineConfig {
     /** "/" belgisiz - masalan "buyer" {@literal ->} /buyer sifatida yuboriladi. */
     public String sellCommand = "buyer";
 
+    /** Jon shundan kam/teng bo'lsa - boshqa hamma narsadan ustun - Experience Bottle ishlatib davolanadi
+     *  (serverning o'z mexanikasi; vanilla'da bu item otiladi, lekin ko'p anarxiya serverlarida ichib davolaydi). */
+    public boolean autoHeal = true;
+    public int healHealth = 10;
+
     public boolean dropJunk = true;
     /** Qazib olingach kerak bo'lmasa yerga tashlanadigan bloklar (ruda ro'yxatidagilar hech qachon tashlanmaydi). */
     public List<String> junk = new ArrayList<>(List.of("minecraft:cobblestone", "minecraft:cobbled_deepslate",
